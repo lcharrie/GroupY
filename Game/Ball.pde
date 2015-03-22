@@ -15,8 +15,10 @@ class Ball {
     radius = r;
   }
   void update() {
+    // compute gravity force
     gravity.set(sin(rz) * CONST_G, 0, -sin(rx) * CONST_G);
 
+    // compute friction force
     friction = velocity.get();
     friction.mult(-1);
     friction.normalize();
@@ -29,37 +31,40 @@ class Ball {
   }
   void display() {
     pushMatrix();
-    fill(255, 0, 0);
-    translate(0, -(radius + board.sizeY/2), 0);
+    fill(ballColor);
+    translate(0, -(radius + board.thickness/2), 0); // take the ball out off the ground
     translate(location.x, location.y, location.z);
     sphere(radius);
     popMatrix();
   }
+  // ball hit an edge
   void checkEdges() {
-    float maxPosX = board.sizeX/2 - radius;
-    float maxPosZ = board.sizeZ/2 - radius;
-    if (location.x > maxPosX) { 
+    float maxPos = board.size/2 - radius;
+    if (location.x > maxPos) { 
       velocity.x = -velocity.x;
-      location.x = maxPosX;
+      location.x = maxPos;
     }    
-    if (location.x < -maxPosX) { 
+    if (location.x < -maxPos) { 
       velocity.x = -velocity.x;
-      location.x = -maxPosX;
+      location.x = -maxPos;
     }
-    if (location.z > maxPosZ) {
+    if (location.z > maxPos) {
       velocity.z = -velocity.z;
-      location.z = maxPosZ;
+      location.z = maxPos;
     }
-    if (location.z < -maxPosZ) {
+    if (location.z < -maxPos) {
       velocity.z = -velocity.z;
-      location.z = -maxPosZ;
+      location.z = -maxPos;
     }
   }
 
+  /* Ball hit a cylinder:
+  ** If a ball is in a cylinder, his position is set to the nearest free location out of the cylinder
+  */
   void checkCylinderCollision() {
     float cylRadius = cylindersCollection.radius;
     for (PVector c : cylindersCollection.list) {
-      if (dist(c.x, c.z, this.location.x, this.location.z) < this.radius + cylRadius) {
+      if (dist(c.x, c.z, this.location.x, this.location.z) < this.radius + cylRadius) { // if a ball is in a cylinder
         PVector n = this.location.get();
         n.sub(c);
         n.normalize(); // n vecteur normal
@@ -69,7 +74,7 @@ class Ball {
         this.location = newLoc;
         PVector nCopy = n.get();
         nCopy.mult(2*velocity.dot(n));
-        this.velocity.sub(nCopy);
+        this.velocity.sub(nCopy); // change the direction of the ball
       }
     }
   }

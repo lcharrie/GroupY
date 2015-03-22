@@ -3,30 +3,44 @@ final float CONST_G = 0.5;
 final float normalForce = 1;
 final float mu = 0.1;
 
+// Set colors
+final color grassColor = color(0, 102, 0);
+final color ballColor = color(255, 0, 0);
+final color treeColor = color(204, 102, 0);
+
 Ball ball;
 Board board;
 Cylinders cylindersCollection;
+ShiftBoard shiftBoard;
 
 float camSpeed = 1.0;
 float rx, rz, ry = 0.0;
+boolean shiftMode = false;
 
 void setup() {
   size(1000, 1000, P3D);
   noStroke();
+
   ball = new Ball(30);
-  board = new Board(1000, 25, 1000);
-  cylindersCollection = new Cylinders();
+  board = new Board(1000, 25);
+  cylindersCollection = new Cylinders(40);
+  shiftBoard = new ShiftBoard((width/2) / board.size);
 }
+
 void draw() {
   background(220);
-  if (keyPressed && keyCode == SHIFT) {
+  if (shiftMode) {
     camera();
-    displayShiftMode();
+    // shiftMode on : display 2D board
+    pushMatrix();
+    translate(width/2, height/2);
+    shiftBoard.display();
+    popMatrix();
   } else {
-    camera(width/2, height/2 - 500, 2000, board.sizeX/2, board.sizeZ/2, 0, 0, 1, 0);
+    camera(width/2, height/2 - 500, 1000, width/2, width/2, 0, 0, 1, 0);
     directionalLight(120, 100, 80, 1, 1, 0);
     ambientLight(90, 90, 90);
-
+    // shiftMode off : display and run the game
     pushMatrix();  
     translate(width/2, height/2, 0);
     rotateX(rx);
@@ -38,19 +52,22 @@ void draw() {
     ball.checkCylinderCollision();
     ball.display();
     cylindersCollection.display();
+    // press 'a' to show axis
     if (keyPressed && key == 97) shapeAxis(1000);
     popMatrix();
   }
 }
 
 void mouseClicked() {
-  if (keyPressed && keyCode == SHIFT) {
+  if (shiftMode) {
+    // try to add a cylinder to the set (shiftMode on)
     cylindersCollection.add(mouseX*2 - width, mouseY*2 - height);
   }
 }
 
 void mouseDragged() {
-  if (!(keyPressed && keyCode == SHIFT)) {
+  if (!shiftMode) {
+    // swift the plate (max 60% and shiftMode off)
     rx = max(-TWO_PI/6, min(TWO_PI/6, rx - (mouseY - pmouseY) / 180.0 * camSpeed));
     rz = max(-TWO_PI/6, min(TWO_PI/6, rz + (mouseX - pmouseX) / 180.0 * camSpeed));
   }
@@ -65,30 +82,24 @@ void keyPressed() {
     case RIGHT:
       ry -= (1 / 90.0)*camSpeed;
       break;
+    case SHIFT:
+      shiftMode = true; // turn shiftMode on
     default:
       break;
     }
   }
 }
 
+void keyReleased() {
+  shiftMode = false; // turn shiftMode off
+}
+
 void mouseWheel(MouseEvent event) {
+  // speed of the swift
   camSpeed = max(1.0, camSpeed - event.getCount());
 }
 
-void displayShiftMode() {
-  pushMatrix();
-  translate(width/2, height/2);
-  fill(150);
-  rect(-width/4, -height/4, width/2, height/2);
-  fill(50);
-  ellipse(ball.location.x / 2, ball.location.z / 2, ball.radius, ball.radius);
-  for (PVector c : cylindersCollection.list) {
-    ellipse(c.x / 2, c.z / 2, cylindersCollection.radius, cylindersCollection.radius);
-  }
-  fill(255);
-  popMatrix();
-}
-
+// shape the axis
 void shapeAxis(float size) {
   strokeWeight(2);
   stroke(0, 255, 0);

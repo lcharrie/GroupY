@@ -1,27 +1,34 @@
 class Cylinders {
   ArrayList<PVector> list = new ArrayList<PVector>();
   PShape cylinder = new PShape();
-  final float radius = 40;
+  final float radius;
 
-  Cylinders() {
+  Cylinders(float radius) {
+    this.radius = radius;
     cylinder = createShape();
     shapeCylinder(radius, 60, 40);
   }
 
+  // display the whool set of cylinders
   void display() {
     for (PVector c : list) {
       pushMatrix();
-      translate(c.x, - board.sizeY / 2, c.z);
+      translate(0, - board.thickness / 2, 0); // set the cylinders out of the board
+      translate(c.x, 0, c.z);
       rotateX(PI / 2 );
+      cylinder.setFill(color(treeColor));
       shape(cylinder);
       popMatrix();
     }
   }
 
+  /* Try to add a new cylender to the set
+  ** You can't build two cylinders in the same spot
+  */
   void add(float x, float y) {
-    if (max(abs(x), abs(y)) <= (board.sizeX / 2) - radius) {
+    if (max(abs(x), abs(y)) <= (board.size / 2) - radius) { // check if the location is in the board area
       for (PVector c : list) {
-        if (dist(x, y, c.x, c.z) < 2 * radius) {
+        if (dist(x, y, c.x, c.z) < 2 * radius) { // ckeck if there isnt an other cylender in the area
           return;
         }
       }
@@ -29,6 +36,7 @@ class Cylinders {
     }
   }
 
+  // Shape a cylinder
   void shapeCylinder(float cylinderBaseSize, float cylinderHeight, int cylinderResolution) {
     float angle;
     float[] x = new float[cylinderResolution + 1];
