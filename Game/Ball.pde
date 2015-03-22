@@ -29,29 +29,47 @@ class Ball {
   }
   void display() {
     pushMatrix();
+    fill(255, 0, 0);
     translate(0, -(radius + board.sizeY/2), 0);
     translate(location.x, location.y, location.z);
     sphere(radius);
     popMatrix();
   }
   void checkEdges() {
-    if (abs(location.x) > board.sizeX/2 - radius) { 
-      velocity.set(-velocity.x, velocity.y, velocity.z);
+    float maxPosX = board.sizeX/2 - radius;
+    float maxPosZ = board.sizeZ/2 - radius;
+    if (location.x > maxPosX) { 
+      velocity.x = -velocity.x;
+      location.x = maxPosX;
+    }    
+    if (location.x < -maxPosX) { 
+      velocity.x = -velocity.x;
+      location.x = -maxPosX;
     }
-    if (abs(location.z) > board.sizeZ/2 - radius) {
-      velocity.set(velocity.x, velocity.y, -velocity.z);
+    if (location.z > maxPosZ) {
+      velocity.z = -velocity.z;
+      location.z = maxPosZ;
+    }
+    if (location.z < -maxPosZ) {
+      velocity.z = -velocity.z;
+      location.z = -maxPosZ;
     }
   }
 
   void checkCylinderCollision() {
+    float cylRadius = cylindersCollection.radius;
     for (PVector c : cylindersCollection.list) {
-      if (dist(c.x, c.z, this.location.x, this.location.z) <= this.radius + cylindersCollection.radius){
+      if (dist(c.x, c.z, this.location.x, this.location.z) < this.radius + cylRadius) {
         PVector n = this.location.get();
         n.sub(c);
-        n.normalize();
-        
-        n.mult(2*velocity.dot(n));
-        velocity.sub(n);
+        n.normalize(); // n vecteur normal
+        PVector newLoc= n.get();
+        newLoc.mult(cylRadius+this.radius);
+        newLoc.add(c); // new ball location (ext of the cylinder)
+        this.location = newLoc;
+        PVector nCopy = n.get();
+        nCopy.mult(2*velocity.dot(n));
+        this.velocity.sub(nCopy);
       }
     }
   }

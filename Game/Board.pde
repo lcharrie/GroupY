@@ -8,6 +8,7 @@ class Board {
     sizeZ = z;
   }
   void display() {
+    fill(0,102,0);
     box(sizeX, sizeY, sizeZ);
   }
 }

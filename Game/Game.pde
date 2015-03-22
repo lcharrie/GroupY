@@ -14,7 +14,7 @@ void setup() {
   size(1000, 1000, P3D);
   noStroke();
   ball = new Ball(30);
-  board = new Board(1000, 20, 1000);
+  board = new Board(1000, 25, 1000);
   cylindersCollection = new Cylinders();
 }
 void draw() {
