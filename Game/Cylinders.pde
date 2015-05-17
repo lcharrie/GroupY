@@ -15,7 +15,7 @@ class Cylinders {
       pushMatrix();
       translate(0, - board.thickness / 2, 0); // set the cylinders out of the board
       translate(c.x, 0, c.z);
-      rotateX(PI / 2 );
+      rotateX(PI/2);
       cylinder.setFill(color(treeColor));
       shape(cylinder);
       popMatrix();

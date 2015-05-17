@@ -19,6 +19,7 @@ float rx, rz = 0.0;
 boolean shiftMode = false;
 float zoom = 1500;
 PGraphics scoreBoard;
+PShape tree;
 
 void setup() {
   size(1000, 1000, P3D);
@@ -28,6 +29,8 @@ void setup() {
   cylindersCollection = new Cylinders(40);
   shiftBoard = new ShiftBoard((width/2) / board.size);
   scoreBoard = createGraphics(width, height/4, P2D);
+  tree = loadShape("firstTree.obj");
+  tree.scale(20);
 }
 
 void draw() {
