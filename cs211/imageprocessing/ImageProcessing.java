@@ -15,7 +15,7 @@ public class ImageProcessing extends PApplet {
 	final float BRIGHTNESS_THRESHOLD = 25.f;
 	final float SATURATION_THRESHOLD = 80.f;
 	final float SOBEL_THRESHOLD = 0.3f;
-	
+
 	private int height, width;
 
 	PImage img;
@@ -25,9 +25,9 @@ public class ImageProcessing extends PApplet {
 
 	public void setup() {
 		img = loadImage("board1.jpg");
-		img.resize((img.width/2), img.height/2);
-		height = img.height;
+		img.resize((img.width / 2), img.height / 2);
 		width = img.width;
+		height = img.height;
 
 		size(2 * width + height, height);
 	}
@@ -48,9 +48,11 @@ public class ImageProcessing extends PApplet {
 		image(img, 0, 0);
 		int minVotes = 100;
 		int nLines = 4;
+
 		detectBoard(edgeImg, nLines, minVotes);
 		image(accImg, width, 0);
 		image(edgeImg, height + width, 0);
+
 	}
 
 	public PImage hough(PImage edgeImg) {
@@ -164,7 +166,7 @@ public class ImageProcessing extends PApplet {
 				}
 			}
 		}
-
+		
 		Collections.sort(bestCandidates, new HoughComparator(accumulator));
 
 		for (int i = 0; i < min(nLines, bestCandidates.size()); i++) {
@@ -220,8 +222,21 @@ public class ImageProcessing extends PApplet {
 			float phi = accPhi * discretizationStepsPhi;
 			bestCandidatesVect.add(new PVector(r, phi));
 		}
-
-		getIntersections(bestCandidatesVect);
+		
+		QuadGraph quadGraph = new QuadGraph();
+		quadGraph.build(bestCandidatesVect, width, height);
+		List<int[]> cycles = quadGraph.cycles;
+		
+		List<PVector> toDraw = new ArrayList<>();
+		
+		if (cycles.isEmpty()){
+			toDraw = bestCandidatesVect.subList(0, 4);
+		} else {
+			for (int i = 0; i < cycles.get(0).length; i++){
+				toDraw.add(bestCandidatesVect.get(cycles.get(0)[i]));
+			}
+		}
+		getIntersections(toDraw);
 	}
 
 	public ArrayList<PVector> getIntersections(List<PVector> lines) {
@@ -236,20 +251,13 @@ public class ImageProcessing extends PApplet {
 				float x = (line2.x * sin(line1.y) - line1.x * sin(line2.y)) / d;
 				float y = (-line2.x * cos(line1.y) + line1.x * cos(line2.y))
 						/ d;
-
+				intersections.add(new PVector(x, y));
 				// draw the intersection
 				fill(255, 128, 0);
 				ellipse(x, y, 10, 10);
 			}
 		}
 		return intersections;
-	}
-
-	public PVector intersection(PVector line1, PVector line2) {
-		float d = cos(line2.y) * sin(line1.y) - cos(line1.y) * sin(line2.y);
-		float x = (line2.x * sin(line1.y) - line1.x * sin(line2.y)) / d;
-		float y = (-line2.x * cos(line1.y) + line1.x * cos(line2.y)) / d;
-		return new PVector(x, y);
 	}
 
 	public PImage thresholding(PImage img, float threshold) {

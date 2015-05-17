@@ -9,9 +9,10 @@ public class QuadGraph {
 
 	List<int[]> cycles = new ArrayList<int[]>();
 	int[][] graph;
+	List<PVector> linesList;
 
 	public void build(List<PVector> lines, int width, int height) {
-
+		linesList = lines ;
 		int n = lines.size();
 
 		// The maximum possible number of edges is sum(0..n) = n * (n + 1)/2
@@ -30,8 +31,8 @@ public class QuadGraph {
 					if (i != j) {
 						graph[idx][0] = i;
 						graph[idx][1] = j;
+						idx++;
 					}
-					idx++;
 				}
 			}
 		}
@@ -108,14 +109,15 @@ public class QuadGraph {
 					{
 						int[] p = normalize(path);
 						int[] inv = invert(p);
-						PVector v1 = new PVector(path[0], path[1]);
-						PVector v2 = new PVector(path[1], path[2]);
-						PVector v3 = new PVector(path[2], path[3]);
-						PVector v4 = new PVector(path[3], path[0]);
+						PVector c1 = intersection(linesList.get(path[0]), linesList.get(path[1]));
+						PVector c2 = intersection(linesList.get(path[1]), linesList.get(path[2]));
+						PVector c3 = intersection(linesList.get(path[2]), linesList.get(path[3]));
+						PVector c4 = intersection(linesList.get(path[3]), linesList.get(path[0]));
 						if (isNew(p) && isNew(inv)
-								&& nonFlatQuad(v1, v2, v3, v4)
-								&& isConvex(v1, v2, v3, v4)
-								&& validArea(v1, v2, v3, v4, 100000, 200000)) {
+								&& isConvex(c1, c2, c3, c4)
+								&& nonFlatQuad(c1, c2, c3, c4)
+								&& validArea(c1, c2, c3, c4, 10000, 150000)
+								) {
 							cycles.add(p);
 						}
 					}
@@ -243,7 +245,7 @@ public class QuadGraph {
 	 * Compute the area of a quad, and check it lays within a specific range
 	 */
 	public static boolean validArea(PVector c1, PVector c2, PVector c3,
-			PVector c4, float max_area, float min_area) {
+			PVector c4, float min_area, float max_area) {
 
 		PVector v21 = PVector.sub(c1, c2);
 		PVector v32 = PVector.sub(c2, c3);
@@ -257,7 +259,7 @@ public class QuadGraph {
 
 		float area = Math.abs(0.5f * (i1 + i2 + i3 + i4));
 
-		// System.out.println(area);
+		 System.out.println(area);
 
 		boolean valid = (area < max_area && area > min_area);
 
@@ -295,6 +297,13 @@ public class QuadGraph {
 			System.out.println("Flat quad");
 			return false;
 		}
+	}
+	
+	public static PVector intersection(PVector line1, PVector line2) {
+		float d = (float)(Math.cos(line2.y) * Math.sin(line1.y) - Math.cos(line1.y) * Math.sin(line2.y));
+		float x = (float)(line2.x * Math.sin(line1.y) - line1.x * Math.sin(line2.y)) / d;
+		float y = (float)(-line2.x * Math.cos(line1.y) + line1.x * Math.cos(line2.y)) / d;
+		return new PVector(x, y);
 	}
 
 }
