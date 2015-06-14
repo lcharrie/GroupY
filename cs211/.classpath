@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="files"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/core/library/core.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/modes/java/libraries/video/library/gstreamer-java.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/modes/java/libraries/video/library/jna.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/modes/java/libraries/video/library/video.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/papaya/library/papaya.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/core/library/gluegen-rt.jar"/>
+	<classpathentry kind="lib" path="C:/Program Files (x86)/processing-2.2.1-windows64/processing-2.2.1/core/library/jogl-all.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

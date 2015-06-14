@@ -6,7 +6,7 @@ class Ball {
   PVector friction;
   final float radius;
   ArrayList<PVector> trace;
-  float lastVelocity, currentVelocity = 0;
+  float  currentVelocity = 0;
   PVector chenille[];
   
   Ball(float r) {
@@ -63,6 +63,41 @@ class Ball {
     for(int i = 0; i < ball.chenille.length; i = i + 2) {
       translate(chenille[i].x, chenille[i].y, chenille[i].z);
       sphere(radius);
+      if(i == 0) {
+        float dx = chenille[0].x - chenille[1].x;
+        float dz = chenille[0].z - chenille[1].z;
+        
+        if(dx == 0.0 && dz == 0.0) {
+          dz = 30.0;
+        } else {
+          float norme = sqrt(dx * dx + dz * dz);
+          dx = dx / norme * radius; dz = dz / norme * radius;
+        }
+
+        //anthènes
+        stroke(1);
+        strokeWeight(4);
+        line(0, 0, 0, -dz, -2 * radius, dx);
+        line(0, 0, 0, dz, -2 * radius, -dx);
+        noStroke();
+        translate(-dz, -2 * radius, dx);
+        fill(ballTraceColor);
+        sphere(radius/2);
+        translate(2 * dz, 0, - 2 * dx);
+        sphere(radius/2);
+        translate(-dz, 2 * radius, dx);
+        
+        //yeux
+        translate(dx, 0, dz);
+        sphere(radius / 8);
+        translate(-dz / 2, -radius / 2, dx / 2);
+        sphere(radius / 4);
+        translate(dz, 0, -dx); 
+        sphere(radius / 4);
+        translate(-dx - dz / 2, radius / 2, -dz + dx / 2);
+        
+        fill(chenilleColor);
+      }
       translate(-chenille[i].x, -chenille[i].y, -chenille[i].z);
     }
     popMatrix();
@@ -73,31 +108,21 @@ class Ball {
     if (chenille[0].x > maxPos) { 
       velocity.x = -velocity.x;
       chenille[0].x = maxPos;
-      lastVelocity = -currentVelocity;
-      score += lastVelocity;
-      if(score != 0) {
-        previousScores.append((int) score);
-      }
+      
     }    
     if (chenille[0].x < -maxPos) { 
       velocity.x = -velocity.x;
       chenille[0].x = -maxPos;
-      lastVelocity = -currentVelocity;
-      score += lastVelocity;   
+
     }
     if (chenille[0].z > maxPos) {
       velocity.z = -velocity.z;
       chenille[0].z = maxPos;
-      lastVelocity = -currentVelocity;
-      score += lastVelocity;
     }
     if (chenille[0].z < -maxPos) {
       velocity.z = -velocity.z;
       chenille[0].z = -maxPos;
-      lastVelocity = -currentVelocity;
-      score += lastVelocity;
     }
-    score = max(score, 0);
   }
 
   /* Ball hit a cylinder:
@@ -105,8 +130,22 @@ class Ball {
   */
   void checkCylinderCollision() {
     float cylRadius = cylindersCollection.radius;
-    for (PVector c : cylindersCollection.list) {
-      if (dist(c.x, c.z, this.chenille[0].x, this.chenille[0].z) < this.radius + cylRadius) { // if a ball is in a cylinder
+    for (int i = 0; i < cylindersCollection.list.size(); ++i) {
+      PVector c = cylindersCollection.list.get(i);
+      Fruit f = cylindersCollection.fruits.get(i);
+      if (dist(c.x, c.z, this.chenille[0].x, this.chenille[0].z) < this.radius + f.size * cylRadius / 2) { // if a ball is in a cylinder
+        int diff = 0;
+        switch(f.size){
+          case 4 : diff = 1; break;
+          case 3 : diff = 2; break;
+          case 2 : diff = 5; break;
+          case 1 : diff = 10; break;
+          default : break;
+        }
+        score += diff;
+        available -= diff;
+        lastEaten = f.name;
+        f.eaten();
         PVector n = this.chenille[0].get();
         n.sub(c);
         n.normalize(); // n vecteur normal
@@ -117,8 +156,27 @@ class Ball {
         PVector nCopy = n.get();
         nCopy.mult(2*velocity.dot(n));
         this.velocity.sub(nCopy); // change the direction of the ball
-        lastVelocity = computeVelocity(); 
-        score += lastVelocity;
+      }
+    }
+  }
+  
+  void checkMontgolfiereCollision() {
+    PVector p = montgolfiere.getPosition();
+    if (dist(p.x, p.z, this.chenille[0].x, this.chenille[0].z) < this.radius + montgolfiereSize * 2) { // if a ball is in the montgolfier
+      if(score < minimalScore) {
+        PVector n = this.chenille[0].get();
+        n.sub(p);
+        n.normalize(); // n vecteur normal
+        PVector newLoc = n.get();
+        newLoc.mult(montgolfiereSize*2 + this.radius);
+        newLoc.add(p); // new ball location (ext of the cylinder)
+        this.chenille[0] = newLoc;
+        PVector nCopy = n.get();
+        nCopy.mult(2 * velocity.dot(n));
+        this.velocity.sub(nCopy); // change the direction of the ball
+      } else {
+        fly = true;
+        gameTime = (millis() - shiftModeTime - startTime) / 1000 ;
       }
     }
   }

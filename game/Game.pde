@@ -2,11 +2,12 @@
 final float CONST_G = 0.5;
 final float normalForce = 1;
 final float mu = 0.02;
-final int cylinderSize = 40;
+final int cylinderSize = 20;
+final int montgolfiereSize = 30;
 
 // Set colors
 final color grassColor = color(0, 102, 0);
-final color ballColor = color(255, 0, 0);
+//final color ballColor = color(255, 0, 0);
 final color chenilleColor = color(255, 255, 0);
 final color treeColor = color(204, 102, 0);
 final color ballTraceColor = color(150, 0, 0);
@@ -24,42 +25,75 @@ static PGraphics barChart;
 Ball ball;
 Board board;
 Cylinders cylindersCollection;
+Montgolfiere montgolfiere;
+Start start;
 ShiftBoard shiftBoard;
 HScrollbar scoreScrollbar;
 
 float camSpeed = 1.0;
 float rx, rz, ry = 0.0;
+boolean startMode = true;
 boolean shiftMode = false;
+boolean shiftModeEnable = false;
 float depth = 2000;
-float score = 0;
+int score = 0;
+int minimalScore = 0;
 int topViewShift = 15;
 int topViewSize;
 IntList previousScores;
 int counter = 0;
 int factor = 1;
+boolean fly = false;
+int shiftModeTime = 0;
+int shiftModeTimeStart;
+int startTime = 0;
+int gameTime;
+int available = 0;
+String lastEaten = "";
 
 void setup() {
   size(1000, 1000, P3D);
   noStroke();
 
+  rx = 0; ry = 0; rz = 0;
+  score = 0;
+  counter = 0;
+  factor = 1;
+  fly = false;
+  startTime = 0;
+  gameTime = 0;
+  shiftModeTime = 0;
+  lastEaten = "";
   previousScores = new IntList();
   topViewSize = height / 4 - 2 * topViewShift;
 
   visualisationArea = createGraphics(width, height / 4, P3D);
   topView = createGraphics(topViewSize, topViewSize, P3D);
-  scoreboard = createGraphics(topViewSize * 3 / 4, topViewSize, P3D);
+  scoreboard = createGraphics(topViewSize, topViewSize, P3D);
   barChart = createGraphics(width - 4 * topViewShift - scoreboard.width - topView.width, topViewSize, P3D);
 
   ball = new Ball(30);
   board = new Board(1000, 25);
   cylindersCollection = new Cylinders(cylinderSize);
+  montgolfiere = new Montgolfiere(new PVector(300, 0, 400), montgolfiereSize);
+  start = new Start();
   shiftBoard = new ShiftBoard((width/2) / board.size);
   scoreScrollbar = new HScrollbar(0, barChart.height - 30, barChart.width, 30);
 }
 
 void draw() {
   background(220);
-  if (shiftMode) {
+  if (startMode) {
+    camera();
+    // shiftMode on : display 2D board
+    pushMatrix();
+    translate(width/2, height/2);
+    start.display();
+    popMatrix();
+  } else if (shiftModeEnable && shiftMode && !fly) {
+    if (shiftModeTimeStart == 0) {
+      shiftModeTimeStart = millis();
+    }
     camera();
     // shiftMode on : display 2D board
     pushMatrix();
@@ -67,12 +101,19 @@ void draw() {
     shiftBoard.display();
     popMatrix();
   } else {
+    if (startTime == 0) {
+      startTime = millis();
+    }
+    if(shiftModeTimeStart != 0) {
+      shiftModeTime += (millis() - shiftModeTimeStart);
+      shiftModeTimeStart = 0;
+    }
     directionalLight(120, 120, 120, 1, 1, 0);
     ambientLight(102, 102, 102);
     camera(width/2, height/2 - 500, depth, width/2, width/2, 0, 0, 1, 0);
     
     counter++;
-    if(counter >= frameRate) {
+    if(counter >= frameRate && !fly) {
       counter = 0;
       if(score != 0) {
         previousScores.append((int) score);
@@ -88,15 +129,29 @@ void draw() {
     rotateY(ry);
     rotateZ(rz);
     board.display();
-    ball.update();
-    ball.checkEdges();
-    ball.checkCylinderCollision();
-    ball.display();
     cylindersCollection.display();
+    montgolfiere.display();
+    
     // press 'a' to show axis
     if (keyPressed && key == 97) shapeAxis(1000);
-    popMatrix();
-        
+    
+    if(fly) {
+      // afficher la tête de la chenille dans la nacelle
+      popMatrix();
+      textSize(72);
+      text("Bravo vous avez gagné !\nVous avez récolté " + score + " portions de nourriture \nen " + gameTime + " secondes.", -400, -400, 0); 
+      textSize(48);
+      text("Presser SUPPRIMER pour retourner au menu principal", -300, 0, 0);
+    } else {
+      ball.update();
+      ball.checkEdges();
+      ball.checkCylinderCollision();
+      ball.checkMontgolfiereCollision();
+      ball.display();
+      popMatrix();
+
+    }
+   
     drawVisualisationArea();
     drawTopView();
     drawScoreboard();
@@ -154,9 +209,15 @@ void drawScoreboard() {
   scoreboard.endShape(CLOSE);
   scoreboard.fill(grassColor);
   scoreboard.textSize(16);
-  scoreboard.text("Total score : \n" + score, 10, 25);
-  scoreboard.text("Velocity : \n" + ball.currentVelocity, 10, 100);
-  scoreboard.text("Last score : \n" + ball.lastVelocity, 10, 175);
+  scoreboard.text("Portions mangées : ", 10, 25);
+  scoreboard.text("Dernier fruit mangé : ", 10, 75);
+  scoreboard.text("Portions Disponibles : ", 10, 125);
+  scoreboard.text("Portions nécessaires : ", 10, 175);
+  scoreboard.textSize(12);
+  scoreboard.text(score, 10, 50);
+  scoreboard.text(lastEaten, 10, 100);
+  scoreboard.text(available, 10, 150);
+  scoreboard.text(minimalScore, 10, 200);
   scoreboard.endDraw();
 }
 
@@ -164,21 +225,29 @@ void drawTopView() {
   topView.beginDraw();
   topView.background(grassColor);
   topView.noStroke();
-  topView.fill(treeColor);
   ArrayList<PVector> cylinderList = cylindersCollection.getCylinders();
   float a = topViewSize / board.size; 
-  for (PVector c : cylinderList) {
-    topView.ellipse((c.x + board.size / 2) * a, (c.z + board.size / 2) * a, cylinderSize * a * 2, cylinderSize * a * 2);
+  for (int i = 0; i < cylindersCollection.list.size(); ++i) {
+    PVector c = cylindersCollection.list.get(i);
+    topView.fill(cylindersCollection.fruits.get(i).col);
+    topView.ellipse((c.x + board.size / 2) * a, (c.z + board.size / 2) * a, cylindersCollection.fruits.get(i).size * cylinderSize * a, cylindersCollection.fruits.get(i).size * cylinderSize * a);
   }
-
-  topView.fill(ballTraceColor);
-  ArrayList<PVector> ballTrace = ball.getTrace();
-  for (PVector t : ballTrace) {
-    topView.ellipse((t.x + board.size / 2) * a, (t.z + board.size / 2) * a, ball.radius * a, ball.radius * a);
-  }
-  topView.fill(chenilleColor);
-  for(int i = 0; i < ball.chenille.length; i++) {
-    topView.ellipse((ball.chenille[i].x + board.size / 2) * a, (ball.chenille[i].z + board.size / 2) * a, ball.radius * a * 2, ball.radius * a * 2);
+  
+  if(!fly) {
+    topView.fill(ballTraceColor);
+    ArrayList<PVector> ballTrace = ball.getTrace();
+    for (PVector t : ballTrace) {
+      topView.ellipse((t.x + board.size / 2) * a, (t.z + board.size / 2) * a, ball.radius * a, ball.radius * a);
+    }
+  
+    topView.fill(chenilleColor);
+    for(int i = 0; i < ball.chenille.length; i++) {
+      topView.ellipse((ball.chenille[i].x + board.size / 2) * a, (ball.chenille[i].z + board.size / 2) * a, ball.radius * a * 2, ball.radius * a * 2);
+    }
+    
+    topView.fill(0, 0, 255);
+    topView.ellipse((montgolfiere.position.x + board.size / 2) * a, (montgolfiere.position.z + board.size / 2) * a, montgolfiere.size * a * 4, montgolfiere.size * a * 4);
+    
   }
   topView.endDraw();
 }
@@ -209,6 +278,10 @@ void mouseDragged() {
 }
 
 void keyPressed() {
+  start.action();
+  if (key == BACKSPACE) {
+    startMode = true;
+  }
   if (key == CODED) {
     switch(keyCode) {
     case LEFT:
@@ -219,6 +292,7 @@ void keyPressed() {
       break;
     case SHIFT:
       shiftMode = true; // turn shiftMode on
+      break;
     default:
       break;
     }
